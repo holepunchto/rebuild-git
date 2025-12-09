@@ -1,8 +1,26 @@
 {
-  "name": "@holepunchto/repo-template",
-  "version": "0.0.1",
-  "description": "repo-template",
+  "name": "rebuild-git",
+  "version": "1.0.0",
+  "description": "rebuild-git",
   "main": "index.js",
+  "imports": {
+    "fs": {
+      "bare": "bare-fs",
+      "default": "fs"
+    },
+    "fs/*": {
+      "bare": "bare-fs/*",
+      "default": "fs/*"
+    },
+    "path": {
+      "bare": "bare-path",
+      "default": "path"
+    },
+    "crypto": {
+      "bare": "bare-crypto",
+      "default": "crypto"
+    }
+  },
   "exports": {
     "./package": "./package.json",
     ".": {
@@ -28,12 +46,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/holepunchto/repo-template.git"
+    "url": "https://github.com/holepunchto/rebuild-git.git"
   },
   "author": "Holepunch Inc",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/holepunchto/repo-template/issues"
+    "url": "https://github.com/holepunchto/rebuild-git/issues"
   },
-  "homepage": "https://github.com/holepunchto/repo-template"
+  "homepage": "https://github.com/holepunchto/rebuild-git",
+  "dependencies": {
+    "bare-crypto": "^1.12.0",
+    "bare-fs": "^4.5.2",
+    "bare-path": "^3.0.0",
+    "pako": "^2.1.0"
+  }
 }
