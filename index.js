@@ -169,7 +169,7 @@ async function discoverGitdir({ dotgit }) {
   }
 }
 
-async function writeObjectLoose({ fs, gitdir, object, oid }) {
+async function writeObjectLoose({ gitdir, object, oid }) {
   const source = `objects/${oid.slice(0, 2)}/${oid.slice(2)}`
   const filepath = `${gitdir}/${source}`
 
