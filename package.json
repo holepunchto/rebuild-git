@@ -21,6 +21,11 @@
       "default": "crypto"
     }
   },
+  "keywords": [
+    "bare",
+    "pear",
+    "git"
+  ],
   "exports": {
     "./package": "./package.json",
     ".": {
