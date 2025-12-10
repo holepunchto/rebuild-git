@@ -18,6 +18,20 @@ function mode2type(mode) {
   throw new Error(`Unexpected GitTree entry mode: ${mode}`)
 }
 
+function compareStrings(a, b) {
+  // https://stackoverflow.com/a/40355107/2168416
+  return -(a < b) || +(a > b)
+}
+
+function appendSlashIfDir(entry) {
+  return entry.mode === '040000' ? entry.path + '/' : entry.path
+}
+
+function compareTreeEntryPath(a, b) {
+  // Git sorts tree entries as if there is a trailing slash on directory names.
+  return compareStrings(appendSlashIfDir(a), appendSlashIfDir(b))
+}
+
 function parseBuffer(buffer) {
   const _entries = []
   let cursor = 0
@@ -86,7 +100,7 @@ class GitTree {
     }
     // Tree entries are not sorted alphabetically in the usual sense (see `compareTreeEntryPath`)
     // but it is important later on that these be sorted in the same order as they would be returned from readdir.
-    this._entries.sort((a, b) => -(a < b) || +(a > b))
+    this._entries.sort(compareStrings)
   }
 
   static from(tree) {
@@ -97,6 +111,22 @@ class GitTree {
     return this._entries
       .map((entry) => `${entry.mode} ${entry.type} ${entry.oid}    ${entry.path}`)
       .join('\n')
+  }
+
+  toObject() {
+    // Adjust the sort order to match git's
+    const entries = [...this._entries]
+    entries.sort(compareTreeEntryPath)
+    return b4a.concat(
+      entries.map((entry) => {
+        const mode = b4a.from(entry.mode.replace(/^0/, ''))
+        const space = b4a.from(' ')
+        const path = b4a.from(entry.path, 'utf8')
+        const nullchar = b4a.from([0])
+        const oid = b4a.from(entry.oid, 'hex')
+        return b4a.concat([mode, space, path, nullchar, oid])
+      })
+    )
   }
 
   /**
@@ -173,7 +203,15 @@ async function writeObjectLoose({ gitdir, object, oid }) {
   const source = `objects/${oid.slice(0, 2)}/${oid.slice(2)}`
   const filepath = `${gitdir}/${source}`
 
-  if (!(await fs.exists(filepath))) await fs.write(filepath, object)
+  try {
+    await fs.stat(filepath)
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      const dir = dirname(filepath)
+      await fs.mkdir(dir, { recursive: true })
+      await fs.writeFile(filepath, object)
+    }
+  }
 }
 
 async function writeObject({
