@@ -1,6 +1,6 @@
 {
   "name": "rebuild-git",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "rebuild-git",
   "main": "index.js",
   "imports": {
