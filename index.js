@@ -1,5 +1,5 @@
 const b4a = require('b4a')
-const fs = require('fs/promises')
+const defaultFs = require('fs/promises')
 const { join, dirname } = require('path')
 const pako = require('pako')
 const crypto = require('crypto')
@@ -179,7 +179,7 @@ class GitObject {
   }
 }
 
-async function discoverGitdir({ dotgit }) {
+async function discoverGitdir({ fs, dotgit }) {
   const dotgitStat = await fs
     .stat(dotgit)
     .catch(() => ({ isFile: () => false, isDirectory: () => false }))
@@ -199,7 +199,7 @@ async function discoverGitdir({ dotgit }) {
   }
 }
 
-async function writeObjectLoose({ gitdir, object, oid }) {
+async function writeObjectLoose({ fs, gitdir, object, oid }) {
   const source = `objects/${oid.slice(0, 2)}/${oid.slice(2)}`
   const filepath = `${gitdir}/${source}`
 
@@ -215,13 +215,14 @@ async function writeObjectLoose({ gitdir, object, oid }) {
 }
 
 async function writeObject({
+  fs = defaultFs,
   dir = './',
   gitdir = join(dir, '.git'),
   type,
   object,
   dryrun = false
 }) {
-  const updatedGitdir = await discoverGitdir({ dotgit: gitdir })
+  const updatedGitdir = await discoverGitdir({ fs, dotgit: gitdir })
 
   switch (type) {
     case 'blob':
@@ -241,10 +242,34 @@ async function writeObject({
   object = b4a.from(pako.deflate(object))
 
   if (!dryrun) {
-    await writeObjectLoose({ gitdir: updatedGitdir, object, oid })
+    await writeObjectLoose({ fs, gitdir: updatedGitdir, object, oid })
   }
 
   return oid
 }
 
-module.exports = { GitTree, GitObject, writeObject }
+async function writeRef({
+  fs = defaultFs,
+  dir = './',
+  gitdir = join(dir, '.git'),
+  ref,
+  value,
+  force = false
+}) {
+  const updatedGitdir = await discoverGitdir({ fs, dotgit: gitdir })
+  const filepath = join(updatedGitdir, ref)
+
+  if (!force) {
+    try {
+      await fs.stat(filepath)
+      throw new Error(`Ref ${ref} already exists. Use force to overwrite.`)
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err
+    }
+  }
+
+  await fs.mkdir(dirname(filepath), { recursive: true })
+  await fs.writeFile(filepath, value.trim() + '\n', 'utf8')
+}
+
+module.exports = { GitTree, GitObject, writeObject, writeRef }
